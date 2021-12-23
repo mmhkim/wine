@@ -1,0 +1,130 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Loading in and Combining Red/White Datasets
+```{r}
+df = read.csv("Wine_Data/winequality-white.csv", sep=";")
+```
+
+
+```{r}
+set.seed(100)
+train_rows = sample(row.names(df), dim(df)[1]*0.8)
+test_rows = setdiff(row.names(df), train_rows)
+
+train_data = df[train_rows,] 
+test_data = df[test_rows,]
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(df,aes(x=quality)) +
+  geom_histogram(binwidth = 1)
+```
+
+```{r}
+library(reshape)
+
+cor_matrix <- cor(df[-c(12)])
+
+cor_mat_melt<-melt(round(cor_matrix,2))
+## Heatmap for correlation among all variables
+ggplot(cor_mat_melt,aes(x=X1,y=X2)) +
+  geom_tile(aes(fill=value)) +
+  scale_fill_gradientn(colours = c("blue", "white", "red"), limits = c(-1,1.0)) +
+  geom_text(aes(label=value)) +
+  guides(x = guide_axis(angle = 90))
+
+```
+# Linear Regression Model
+## Model Construction
+```{r}
+lin_mod = lm(quality ~ ., data=train_data)
+
+summary(lin_mod)
+```
+
+## Linear Regression Performance Train Set Performance
+```{r}
+library(forecast)
+
+accuracy(lin_mod$fitted.values, train_data$quality)
+```
+
+## Linear Regression Test Set Performance
+```{r}
+test_pred = predict(lin_mod, newdata=test_data)
+accuracy(test_pred, test_data$quality)
+```
+
+# kNN Regression Model
+# Model Construction
+```{r}
+library(caret)
+knn_model = knnreg(train_data[-c(12)], train_data$quality)
+
+```
+
+## kNN Regression Performance Train Set Performance
+```{r}
+library(forecast)
+
+train_pred = predict(knn_model, train_data[-c(12)])
+
+accuracy(train_pred, train_data$quality)
+```
+
+## kNN Regression Test Set Performance
+```{r}
+test_pred = predict(knn_model, test_data[-c(12)])
+accuracy(test_pred, test_data$quality)
+```
+
+# Decision Tree Model
+## Model Construction
+```{r}
+library(rpart)
+DT_model = rpart(quality ~ ., method = "anova", data = train_data)
+```
+
+## Decision Tree Regression Performance Train Set Performance
+```{r}
+train_pred = predict(DT_model, train_data)
+accuracy(train_pred, train_data$quality)
+```
+
+## Decision Tree Regression Performance Test Set Performance
+```{r}
+test_pred = predict(DT_model, test_data, method = "anova")
+accuracy(test_pred, test_data$quality)
+```
+
+```{r}
+library(rpart.plot)
+rpart.plot(DT_model)
+```
+
+# SVM Regression Model
+## Model Construction
+```{r}
+library(e1071)
+
+svm_model = svm(quality~.,train_data)
+```
+
+## SVM Regression Performance Train Set Performance
+```{r}
+train_pred = predict(svm_model, train_data)
+accuracy(train_pred, train_data$quality)
+```
+
+## SVM Regression Performance Test Set Performance
+```{r}
+test_pred = predict(svm_model, test_data, method = "anova")
+accuracy(test_pred, test_data$quality)
+```
+
